@@ -58,6 +58,7 @@ fn main() {
         .std("c++17")
         .warnings(false)
         .define("HAVE_CONFIG_H", None)
+        .define("NDEBUG", None)  // suppress MOS6510 debug printf during instruction table build
         .include(&out_dir)
         .include(&csrc)
         .include(&csrc.join("sidplayfp"))
