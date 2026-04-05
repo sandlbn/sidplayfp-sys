@@ -20,9 +20,10 @@
 #include "sidemu.h"
 #include "EventScheduler.h"
 
-#include <vector>
+#include <algorithm>
 #include <cstring>
 #include <new>
+#include <vector>
 
 using namespace libsidplayfp;
 
