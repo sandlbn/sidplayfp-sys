@@ -1,0 +1,25 @@
+[package]
+name = "sidplayfp-sys"
+version = "0.1.0"
+edition = "2021"
+description = "FFI bindings to libsidplayfp — cycle-accurate C64/SID emulation with SID write capture"
+authors = ["Marcin Spoczynski <marcin@spoczynski.com>"]
+license = "GPL-2.0-or-later"
+repository = "https://github.com/sandlbn/sidplayfp-sys"
+readme = "README.md"
+keywords = ["sid", "c64", "commodore", "chiptune", "emulation"]
+categories = ["multimedia::audio", "emulators"]
+links = "sidplayfp"
+include = [
+    "src/**/*.rs",
+    "csrc/**",
+    "sidplayfp_c.h",
+    "sidplayfp_c.cpp",
+    "build.rs",
+    "Cargo.toml",
+    "LICENSE",
+    "README.md",
+]
+
+[build-dependencies]
+cc = "1"
