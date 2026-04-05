@@ -264,14 +264,35 @@ int sidplayfp_play(sidplayfp_player_t *p, unsigned int cycles)
             *clk = emu->frameStartClk;
     }, &startClk);
 
-    // play(N) fires N event-scheduler ticks.  The internal clock runs at 2x
-    // the CPU clock (PHI1 + PHI2 phases), so N ticks ≈ N CPU cycles because
-    // the CPU fires one event per cycle and VIC/CIA events are interleaved.
-    // Just call play() once with the requested cycle count.
-    int ret = p->engine.play(cycles);
-    if (ret < 0) {
-        p->last_error = p->engine.error();
-        return -1;
+    // play(N) fires N event-scheduler ticks, NOT N CPU cycles.
+    // The scheduler interleaves CPU, VIC, and CIA events, so N ticks
+    // yields only ~85-90% of N CPU cycles.
+    //
+    // Loop: run play() in small chunks until we've elapsed the
+    // requested number of CPU cycles.  Each chunk undershoots a bit,
+    // so we top up with progressively smaller calls.
+    event_clock_t target = startClk + static_cast<event_clock_t>(cycles);
+    unsigned int remaining = cycles;
+
+    while (remaining > 0) {
+        int ret = p->engine.play(remaining);
+        if (ret < 0) {
+            p->last_error = p->engine.error();
+            return -1;
+        }
+
+        // Measure actual PHI1 time now.
+        event_clock_t nowClk = 0;
+        p->builder.forEachEmu([](CaptureSidEmu *emu, void *ctx) {
+            auto *clk = static_cast<event_clock_t*>(ctx);
+            if (emu->locked())
+                *clk = emu->currentPhiTime();
+        }, &nowClk);
+
+        if (nowClk >= target)
+            break;
+
+        remaining = static_cast<unsigned int>(target - nowClk);
     }
 
     // Compute actual elapsed CPU cycles.
