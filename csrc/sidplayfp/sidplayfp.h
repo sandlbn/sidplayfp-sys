@@ -217,6 +217,15 @@ public:
     uint_least16_t getCia1TimerA() const;
 
     /**
+     * Read a byte from the emulated C64 RAM.
+     *
+     * @param addr the 16-bit address to read.
+     * @return the byte value at that address.
+     */
+    uint8_t readMemByte(uint_least16_t addr);
+    void writeMemByte(uint_least16_t addr, uint8_t val);
+
+    /**
      * Get the SID registers programmed value.
      *
      * @param sidNum the SID chip, 0 for the first one, 1 for the second and 2 for the third.

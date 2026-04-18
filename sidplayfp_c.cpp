@@ -246,6 +246,48 @@ int sidplayfp_load(sidplayfp_player_t *p,
     return 1;
 }
 
+int sidplayfp_load_file(sidplayfp_player_t *p,
+                        const char *filename,
+                        int subtune)
+{
+    if (!p || !filename) return 0;
+
+    // Clean up previous tune
+    delete p->tune;
+    p->tune = nullptr;
+    p->builder.resetIndices();
+
+    // SidTune(filename) automatically finds companion .str files for MUS tunes.
+    p->tune = new (std::nothrow) SidTune(filename);
+    if (!p->tune) {
+        p->last_error = "Failed to allocate SidTune";
+        return 0;
+    }
+
+    if (!p->tune->getStatus()) {
+        p->last_error = p->tune->statusString();
+        return 0;
+    }
+
+    p->tune->selectSong(subtune);
+
+    SidConfig cfg;
+    cfg.sidEmulation = &p->builder;
+    cfg.frequency = 48000;
+
+    if (!p->engine.config(cfg)) {
+        p->last_error = p->engine.error();
+        return 0;
+    }
+
+    if (!p->engine.load(p->tune)) {
+        p->last_error = p->engine.error();
+        return 0;
+    }
+
+    return 1;
+}
+
 int sidplayfp_play(sidplayfp_player_t *p, unsigned int cycles)
 {
     if (!p) return -1;
@@ -356,4 +398,33 @@ uint16_t sidplayfp_cia1_timer_a(sidplayfp_player_t *p)
 {
     if (!p) return 0;
     return p->engine.getCia1TimerA();
+}
+
+uint8_t sidplayfp_read_mem(sidplayfp_player_t *p, uint16_t addr)
+{
+    if (!p) return 0;
+    return p->engine.readMemByte(addr);
+}
+
+void sidplayfp_write_mem(sidplayfp_player_t *p, uint16_t addr, uint8_t val)
+{
+    if (!p) return;
+    p->engine.writeMemByte(addr, val);
+}
+
+int sidplayfp_num_comments(sidplayfp_player_t *p)
+{
+    if (!p || !p->tune) return 0;
+    const SidTuneInfo *info = p->tune->getInfo();
+    if (!info) return 0;
+    return static_cast<int>(info->numberOfCommentStrings());
+}
+
+const char *sidplayfp_comment(sidplayfp_player_t *p, int index)
+{
+    if (!p || !p->tune) return "";
+    const SidTuneInfo *info = p->tune->getInfo();
+    if (!info || index < 0 || index >= static_cast<int>(info->numberOfCommentStrings()))
+        return "";
+    return info->commentString(static_cast<unsigned int>(index));
 }

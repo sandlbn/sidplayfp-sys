@@ -122,6 +122,16 @@ uint_least16_t sidplayfp::getCia1TimerA() const
     return sidplayer.getCia1TimerA();
 }
 
+uint8_t sidplayfp::readMemByte(uint_least16_t addr)
+{
+    return sidplayer.readMemByte(addr);
+}
+
+void sidplayfp::writeMemByte(uint_least16_t addr, uint8_t val)
+{
+    sidplayer.writeMemByte(addr, val);
+}
+
 bool sidplayfp::getSidStatus(unsigned int sidNum, uint8_t regs[32])
 {
     return sidplayer.getSidStatus(sidNum, regs);

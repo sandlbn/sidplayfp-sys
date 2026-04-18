@@ -156,6 +156,9 @@ public:
 
     uint_least16_t getCia1TimerA() const { return m_c64.getCia1TimerA(); }
 
+    uint8_t readMemByte(uint_least16_t addr) { return m_c64.getMemInterface().readMemByte(addr); }
+    void writeMemByte(uint_least16_t addr, uint8_t val) { m_c64.getMemInterface().writeMemByte(addr, val); }
+
     bool getSidStatus(unsigned int sidNum, uint8_t regs[32]);
 
     unsigned int installedSIDs() const { return m_chips.size(); }

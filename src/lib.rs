@@ -41,6 +41,11 @@ extern "C" {
         len: u32,
         subtune: c_int,
     ) -> c_int;
+    pub fn sidplayfp_load_file(
+        p: *mut sidplayfp_player_t,
+        filename: *const std::os::raw::c_char,
+        subtune: c_int,
+    ) -> c_int;
     pub fn sidplayfp_play(p: *mut sidplayfp_player_t, cycles: u32) -> c_int;
     pub fn sidplayfp_get_writes(
         p: *mut sidplayfp_player_t,
@@ -51,6 +56,13 @@ extern "C" {
     pub fn sidplayfp_num_sids(p: *mut sidplayfp_player_t) -> c_int;
     pub fn sidplayfp_is_pal(p: *mut sidplayfp_player_t) -> c_int;
     pub fn sidplayfp_cia1_timer_a(p: *mut sidplayfp_player_t) -> u16;
+    pub fn sidplayfp_read_mem(p: *mut sidplayfp_player_t, addr: u16) -> u8;
+    pub fn sidplayfp_write_mem(p: *mut sidplayfp_player_t, addr: u16, val: u8);
+    pub fn sidplayfp_num_comments(p: *mut sidplayfp_player_t) -> c_int;
+    pub fn sidplayfp_comment(
+        p: *mut sidplayfp_player_t,
+        index: c_int,
+    ) -> *const std::os::raw::c_char;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -116,6 +128,24 @@ impl Player {
         }
     }
 
+    /// Load a SID/MUS tune from a file path and select a subtune.
+    /// For MUS files, libsidplayfp automatically finds companion .str files.
+    pub fn load_file(&mut self, path: &std::path::Path, subtune: u16) -> Result<(), String> {
+        let path_str = path
+            .to_str()
+            .ok_or_else(|| "Path contains invalid UTF-8".to_string())?;
+        let cpath = std::ffi::CString::new(path_str)
+            .map_err(|_| "Path contains null byte".to_string())?;
+        let ret = unsafe {
+            sidplayfp_load_file(self.ptr, cpath.as_ptr(), subtune as c_int)
+        };
+        if ret == 0 {
+            Err(self.error())
+        } else {
+            Ok(())
+        }
+    }
+
     /// Run emulation for `cycles` CPU cycles, capturing SID writes.
     /// Returns the actual number of CPU cycles elapsed.
     pub fn play(&mut self, cycles: u32) -> Result<u32, String> {
@@ -160,6 +190,37 @@ impl Player {
     /// Get CIA1 Timer A latch value.
     pub fn cia1_timer_a(&self) -> u16 {
         unsafe { sidplayfp_cia1_timer_a(self.ptr) }
+    }
+
+    /// Number of MUS comment strings (embedded credits/lyrics).
+    pub fn num_comments(&self) -> usize {
+        unsafe { sidplayfp_num_comments(self.ptr) as usize }
+    }
+
+    /// Get a MUS comment string by index (0-based).
+    pub fn comment(&self, index: usize) -> String {
+        let cstr = unsafe { sidplayfp_comment(self.ptr, index as c_int) };
+        if cstr.is_null() {
+            return String::new();
+        }
+        unsafe { std::ffi::CStr::from_ptr(cstr) }
+            .to_string_lossy()
+            .into_owned()
+    }
+
+    /// Get all MUS comment strings.
+    pub fn comments(&self) -> Vec<String> {
+        (0..self.num_comments()).map(|i| self.comment(i)).collect()
+    }
+
+    /// Read a byte from emulated C64 RAM.
+    pub fn read_mem(&self, addr: u16) -> u8 {
+        unsafe { sidplayfp_read_mem(self.ptr, addr) }
+    }
+
+    /// Write a byte to emulated C64 RAM.
+    pub fn write_mem(&mut self, addr: u16, val: u8) {
+        unsafe { sidplayfp_write_mem(self.ptr, addr, val) }
     }
 
     /// Get the last error message.

@@ -60,6 +60,16 @@ int sidplayfp_load(sidplayfp_player_t *p,
                    int subtune);
 
 /*
+ * Load a SID/MUS tune from a file path and select a subtune.
+ * For MUS files, libsidplayfp automatically searches for a companion
+ * .str file (stereo voices) next to the .mus file.
+ * Returns 1 on success, 0 on failure (call sidplayfp_error()).
+ */
+int sidplayfp_load_file(sidplayfp_player_t *p,
+                        const char *filename,
+                        int subtune);
+
+/*
  * Run emulation for `cycles` CPU cycles.
  * SID writes are captured internally.
  * Returns the actual number of CPU cycles elapsed, or -1 on error.
@@ -87,6 +97,18 @@ int sidplayfp_is_pal(sidplayfp_player_t *p);
 
 /* Get the CIA1 Timer A latch value (for frame rate detection). */
 uint16_t sidplayfp_cia1_timer_a(sidplayfp_player_t *p);
+
+/* Read a byte from the emulated C64 RAM. */
+uint8_t sidplayfp_read_mem(sidplayfp_player_t *p, uint16_t addr);
+
+/* Write a byte to the emulated C64 RAM. */
+void sidplayfp_write_mem(sidplayfp_player_t *p, uint16_t addr, uint8_t val);
+
+/* Get the number of MUS comment strings (embedded credits/lyrics). */
+int sidplayfp_num_comments(sidplayfp_player_t *p);
+
+/* Get a MUS comment string by index (0-based).  Returns "" if out of range. */
+const char *sidplayfp_comment(sidplayfp_player_t *p, int index);
 
 #ifdef __cplusplus
 }
